@@ -1,0 +1,222 @@
+@tailwind base;
+@tailwind utilities;
+@tailwind components;
+
+/* ── Raydium-inspired design tokens ── */
+:root {
+  /* Colors */
+  --ray-primary:        #abc4ff;
+  --ray-secondary:      #22D1F8;
+  --ray-secondary-2:    #39D0D8;
+  --ray-bg-dark:        #0b1022;
+  --ray-bg-medium:      #161E32;
+  --ray-bg-light:       #1C243E;
+  --ray-tp-12:          rgba(171, 196, 255, 0.12);
+  --ray-tp-07:          rgba(171, 196, 255, 0.07);
+  --ray-tp-10:          rgba(171, 196, 255, 0.10);
+  --ray-border:         rgba(171, 196, 255, 0.18);
+  --ray-text-primary:   #ECF5FF;
+  --ray-text-secondary: #abc4ff;
+  --ray-text-muted:     rgba(171, 196, 255, 0.5);
+  --ray-positive:       #4CDCC1;
+  --ray-negative:       #FF4272;
+  --ray-warning:        #FED33A;
+  --ray-btn-text:       #0B1022;
+  --ray-btn-gradient:   linear-gradient(272.03deg, #39D0D8 2.63%, #22D1F8 95.31%);
+  --ray-app-bg:         linear-gradient(29.71deg, #121C34 -18.98%, #050D17 14.6%, #070A15 56.26%, rgba(9,14,29,0.97) 85.27%);
+
+  /* Landing page palette */
+  --bg-primary: #050816;
+  --brand-purple: #7c3aed;
+  --brand-cyan: #06b6d4;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-primary);
+  color: #f8fafc;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(171, 196, 255, 0.2);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(171, 196, 255, 0.35); }
+
+/* Remove number spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+
+/* ── Utility classes ── */
+
+/* Landing gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #c084fc 0%, #22d3ee 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Landing glass */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.glass-md {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Dot/line grid backgrounds */
+.dot-grid {
+  background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.line-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+/* Landing glow button */
+.btn-glow {
+  background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+  box-shadow: 0 0 24px rgba(124,58,237,0.45);
+  transition: box-shadow 0.25s ease, transform 0.15s ease;
+}
+.btn-glow:hover:not(:disabled) {
+  box-shadow: 0 0 40px rgba(124,58,237,0.65), 0 0 80px rgba(6,182,212,0.25);
+  transform: translateY(-1px);
+}
+.btn-glow:active:not(:disabled) { transform: translateY(0); }
+
+/* ── Raydium-style swap utilities ── */
+
+/* Raydium card background */
+.ray-card {
+  background: var(--ray-bg-light);
+  border-radius: 24px;
+}
+
+/* Raydium input box */
+.ray-input-box {
+  background: var(--ray-tp-12);
+  border: 1px solid var(--ray-border);
+  border-radius: 16px;
+  transition: border-color 0.2s;
+}
+.ray-input-box:focus-within {
+  border-color: rgba(171, 196, 255, 0.35);
+}
+
+/* Raydium token selector pill */
+.ray-token-pill {
+  background: var(--ray-tp-12);
+  border: 1px solid var(--ray-border);
+  border-radius: 9999px;
+  transition: opacity 0.15s, background 0.15s;
+}
+.ray-token-pill:hover { background: rgba(171, 196, 255, 0.18); }
+
+/* Raydium primary action button */
+.ray-btn {
+  background: var(--ray-btn-gradient);
+  color: var(--ray-btn-text);
+  font-weight: 700;
+  border-radius: 12px;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 0 20px rgba(34, 209, 248, 0.3);
+}
+.ray-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  box-shadow: 0 0 32px rgba(34, 209, 248, 0.5);
+  transform: translateY(-1px);
+}
+.ray-btn:active:not(:disabled) { transform: translateY(0); }
+.ray-btn:disabled {
+  background: var(--ray-tp-12);
+  color: var(--ray-text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Raydium divider icon button (swap arrow) */
+.ray-arrow-btn {
+  background: var(--ray-tp-12);
+  border: 1px solid var(--ray-border);
+  border-radius: 12px;
+  color: var(--ray-primary);
+  transition: background 0.15s, border-color 0.15s, transform 0.2s;
+}
+.ray-arrow-btn:hover {
+  background: rgba(171, 196, 255, 0.18);
+  border-color: rgba(171, 196, 255, 0.3);
+}
+
+/* Raydium info row */
+.ray-info-row {
+  background: var(--ray-tp-07);
+  border: 1px solid rgba(171, 196, 255, 0.08);
+  border-radius: 12px;
+}
+
+/* Raydium settings pill option */
+.ray-slip-opt {
+  background: var(--ray-tp-12);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--ray-primary);
+  transition: background 0.15s, border-color 0.15s;
+}
+.ray-slip-opt-active {
+  background: rgba(34, 209, 248, 0.15);
+  border-color: rgba(34, 209, 248, 0.4);
+  color: var(--ray-secondary);
+}
+
+/* Live pulse */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
+.live-dot { animation: live-pulse 1.8s ease-in-out infinite; }
+
+/* Range slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--ray-tp-12);
+  border-radius: 2px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(124,58,237,0.5);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px;
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
