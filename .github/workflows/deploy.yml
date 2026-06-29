@@ -1,0 +1,158 @@
+name: CD
+
+# Deploys StellarDex to Stellar Testnet + the configured frontend host on push to main.
+#
+# Required repository secrets:
+#   STELLAR_SECRET_KEY  - a FUNDED testnet account secret (S...) used to deploy & initialize.
+#   VERCEL_TOKEN        - Vercel deploy token (frontend defaults to Vercel; see deploy-frontend).
+#
+# Optional secrets (override the auto-derived values if you deploy contracts out-of-band):
+#   NEXT_PUBLIC_POOL_CONTRACT_ID, NEXT_PUBLIC_LP_TOKEN_CONTRACT_ID,
+#   NEXT_PUBLIC_XLM_CONTRACT_ID, NEXT_PUBLIC_USDC_CONTRACT_ID
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  STELLAR_NETWORK: testnet
+  NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+  SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+  HORIZON_URL: https://horizon-testnet.stellar.org
+  # Circle's real testnet USDC issuer (so swaps are visible in Freighter).
+  USDC_ISSUER: GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5
+
+jobs:
+  # ── Deploy + initialize Soroban contracts ────────────────────────────────
+  deploy-contract:
+    name: Deploy Contracts (testnet)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    outputs:
+      pool_id: ${{ steps.deploy.outputs.pool_id }}
+      lp_token_id: ${{ steps.deploy.outputs.lp_token_id }}
+      xlm_sac: ${{ steps.deploy.outputs.xlm_sac }}
+      usdc_sac: ${{ steps.deploy.outputs.usdc_sac }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+            contracts/target
+          key: ${{ runner.os }}-cd-cargo-${{ hashFiles('contracts/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cd-cargo-
+
+      - name: Install Stellar CLI
+        run: cargo install --locked stellar-cli --features opt
+
+      - name: Build contract WASM
+        run: stellar contract build
+
+      - name: Deploy & initialize
+        id: deploy
+        env:
+          STELLAR_SECRET_KEY: ${{ secrets.STELLAR_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          NETWORK="$STELLAR_NETWORK"
+          WASM_DIR="target/wasm32v1-none/release"
+
+          # Register the signing identity from the secret so we can read its address.
+          stellar keys add deployer --secret-key --overwrite <<< "$STELLAR_SECRET_KEY"
+          DEPLOYER_ADDRESS=$(stellar keys address deployer)
+          echo "Deployer: $DEPLOYER_ADDRESS"
+
+          # Resolve SAC (Stellar Asset Contract) addresses — deterministic, no deploy needed.
+          XLM_SAC_ID=$(stellar contract id asset --asset native --network "$NETWORK")
+          USDC_SAC_ID=$(stellar contract id asset \
+            --asset "USDC:${USDC_ISSUER}" --network "$NETWORK")
+
+          # Deploy LP token and initialize it.
+          LP_TOKEN_ID=$(stellar contract deploy \
+            --wasm "$WASM_DIR/stellardex_token.wasm" \
+            --network "$NETWORK" --source deployer)
+          stellar contract invoke --id "$LP_TOKEN_ID" --network "$NETWORK" --source deployer \
+            -- initialize --admin "$DEPLOYER_ADDRESS" \
+            --name "StellarDex LP" --symbol "SDLP" --decimals 7
+
+          # Deploy pool and initialize it.
+          POOL_ID=$(stellar contract deploy \
+            --wasm "$WASM_DIR/stellardex_pool.wasm" \
+            --network "$NETWORK" --source deployer)
+          stellar contract invoke --id "$POOL_ID" --network "$NETWORK" --source deployer \
+            -- initialize --xlm_sac "$XLM_SAC_ID" --usdc_sac "$USDC_SAC_ID" --lp_token "$LP_TOKEN_ID"
+
+          # Hand LP-token admin to the pool so it can mint/burn on deposit/withdraw.
+          stellar contract invoke --id "$LP_TOKEN_ID" --network "$NETWORK" --source deployer \
+            -- set_admin --new_admin "$POOL_ID"
+
+          echo "pool_id=$POOL_ID"           >> "$GITHUB_OUTPUT"
+          echo "lp_token_id=$LP_TOKEN_ID"   >> "$GITHUB_OUTPUT"
+          echo "xlm_sac=$XLM_SAC_ID"        >> "$GITHUB_OUTPUT"
+          echo "usdc_sac=$USDC_SAC_ID"      >> "$GITHUB_OUTPUT"
+
+          echo "### Contract deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Pool: \`$POOL_ID\`"       >> "$GITHUB_STEP_SUMMARY"
+          echo "- LP Token: \`$LP_TOKEN_ID\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- XLM SAC: \`$XLM_SAC_ID\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- USDC SAC: \`$USDC_SAC_ID\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Build + deploy the frontend (Vercel by default) ───────────────────────
+  deploy-frontend:
+    name: Deploy Frontend
+    needs: [deploy-contract]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      # Prefer freshly deployed IDs; fall back to secrets if provided.
+      NEXT_PUBLIC_STELLAR_NETWORK: testnet
+      NEXT_PUBLIC_SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+      NEXT_PUBLIC_HORIZON_URL: https://horizon-testnet.stellar.org
+      NEXT_PUBLIC_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+      NEXT_PUBLIC_POOL_CONTRACT_ID: ${{ needs.deploy-contract.outputs.pool_id || secrets.NEXT_PUBLIC_POOL_CONTRACT_ID }}
+      NEXT_PUBLIC_LP_TOKEN_CONTRACT_ID: ${{ needs.deploy-contract.outputs.lp_token_id || secrets.NEXT_PUBLIC_LP_TOKEN_CONTRACT_ID }}
+      NEXT_PUBLIC_XLM_CONTRACT_ID: ${{ needs.deploy-contract.outputs.xlm_sac || secrets.NEXT_PUBLIC_XLM_CONTRACT_ID }}
+      NEXT_PUBLIC_USDC_CONTRACT_ID: ${{ needs.deploy-contract.outputs.usdc_sac || secrets.NEXT_PUBLIC_USDC_CONTRACT_ID }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # Default platform: Vercel. Swap this step if the repo uses Railway/Netlify.
+      #   Railway: npx railway up --service <frontend-service-name>
+      #   Netlify: npx netlify deploy --prod --dir=.next
+      - name: Deploy to Vercel
+        run: npx vercel --prod --token "$VERCEL_TOKEN" --yes
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
