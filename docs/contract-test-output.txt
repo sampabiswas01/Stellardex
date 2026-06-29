@@ -1,0 +1,39 @@
+warning: unused config key `net.timeout` in `C:\Users\LENOVO\.cargo\config.toml`
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.93s
+     Running unittests src\lib.rs (target\debug\deps\stellardex_pool-cfd486c14d736be5.exe)
+
+running 9 tests
+test math::tests::test_calc_shares_first_deposit ... ok
+test math::tests::test_sqrt ... ok
+test math::tests::test_get_amount_out ... ok
+test math::tests::test_calc_shares_subsequent ... ok
+test test::test_deposit_and_get_reserves ... ok
+test test::test_swap_slippage_protection - should panic ... ok
+test test::test_deposit_withdraw_round_trip ... ok
+test test::test_swap_xlm_for_usdc ... ok
+test test::test_get_price ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running unittests src\lib.rs (target\debug\deps\stellardex_token-ff5458593644245f.exe)
+
+running 4 tests
+test test::test_mint_and_balance ... ok
+test test::test_burn ... ok
+test test::test_transfer ... ok
+test test::test_approve_and_transfer_from ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+   Doc-tests stellardex_pool
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests stellardex_token
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
